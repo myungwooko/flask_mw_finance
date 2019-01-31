@@ -59,19 +59,6 @@ def create_user():
 
 
 
-@app.route('/user_del/<username>', methods=['DELETE'])
-def delete_user(username):
-    user = User.query.filter_by(username=username).first()
-
-    if user is None:
-        return jsonify({'messages': f"There is no user who's username is {username}"})
-
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({'message': f"User {username} has just been deleted"})
-
-
-
 
 @app.route('/login', methods=['GET'])
 def login():
@@ -88,6 +75,27 @@ def login():
         return jsonify({'token': token.decode('UTF-8')})
 
     return make_response('Could not veryify', 401, {'WWW_Authenticate': 'Basic realm="Login required!"'})
+
+
+
+
+
+@app.route('/mw_finance/user_del', methods=['DELETE'])
+def delete_user():
+    auth = request.authorization
+    if not auth or not auth.username or not auth.password:
+        return jsonify({'message': 'Please enter your username or password perfectly'})
+
+    user = User.query.filter_by(username=auth.username).first()
+
+    if not user:
+        return jsonify({'message': 'Please check your username'})
+    if check_password_hash(user.password, auth.password):
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'User deleted'})
+    return jsonify({'message': 'Please check your password'})
+
 
 
 
