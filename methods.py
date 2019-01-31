@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from db import User, Currency, Currency_info, db, app
 from datetime import datetime
+from operator import itemgetter
 
 
 
@@ -131,6 +132,7 @@ def today_or_not(currency_info):
 
 def dict_from_object(object):
     dict_info = {}
+    dict_info['currency_id'] = object.currency_id
     dict_info['통화명'] = object.통화명
     dict_info['심볼'] = object.심볼
     dict_info['현재가'] = object.현재가
@@ -170,11 +172,12 @@ def case_currency_id_1_and_len_num(pages):
 
     currency_infos = Currency_info.query.all()
     currency_infos = currency_infos[:-118:-1]
-
     for one in currency_infos:
         if today_or_not(one):
             one = dict_from_object(one)
             result.append(one)
+
+    result = sorted(result, key=itemgetter('currency_id'))
     return jsonify(result)
 
 
