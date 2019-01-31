@@ -93,7 +93,7 @@ def delete_user():
     if check_password_hash(user.password, auth.password):
         db.session.delete(user)
         db.session.commit()
-        return jsonify({'message': 'User deleted'})
+        return jsonify({'message': f"User {user.username} has been deleted"})
     return jsonify({'message': 'Please check your password'})
 
 
