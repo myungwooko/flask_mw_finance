@@ -21,6 +21,14 @@ class User(db.Model):
 
 
 
+class Blacklist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(225))
+
+    def __init__(self, token):
+        self.token = token
+
+
 
 class Currency(db.Model):
     id = db.Column(db.Integer, primary_key=True)

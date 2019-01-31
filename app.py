@@ -1,6 +1,6 @@
 from flask import request, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
-from db import User, Currency, Currency_info, db, app
+from db import User, Blacklist, Currency, Currency_info, db, app
 from functools import wraps
 import datetime
 import methods
@@ -60,28 +60,10 @@ def create_user():
 
 
 
+
+
 @app.route('/login', methods=['GET'])
 def login():
-    auth = request.authorization
-    if not auth or not auth.username or not auth.password:
-        return make_response('Could not veryify', 401, {'WWW_Authenticate': 'Basic realm="Login required!"'})
-
-    user = User.query.filter_by(username=auth.username).first()
-
-    if not user:
-        return make_response('Could not veryify', 401, {'WWW_Authenticate': 'Basic realm="Login required!"'})
-    if check_password_hash(user.password, auth.password):
-        token = jwt.encode({'public_id': user.public_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1)}, app.config['SECRET_KEY'])
-        return jsonify({'token': token.decode('UTF-8')})
-
-    return make_response('Could not veryify', 401, {'WWW_Authenticate': 'Basic realm="Login required!"'})
-
-
-
-
-
-@app.route('/mw_finance/user_del', methods=['DELETE'])
-def delete_user():
     auth = request.authorization
     if not auth or not auth.username or not auth.password:
         return jsonify({'message': 'Please enter your username or password perfectly'})
@@ -91,9 +73,35 @@ def delete_user():
     if not user:
         return jsonify({'message': 'Please check your username'})
     if check_password_hash(user.password, auth.password):
+        token = jwt.encode({'public_id': user.public_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)}, app.config['SECRET_KEY'])
+        while Blacklist.query.filter_by(token=token).first() is not None:
+            token = jwt.encode({'public_id': user.public_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)}, app.config['SECRET_KEY'])
+        return jsonify({'token': token.decode('UTF-8')})
+
+    return jsonify({'message': 'Please check your password'})
+
+
+
+
+@app.route('/mw_finance/user_del', methods=['DELETE'])
+@token_required
+def delete_user(current_user):
+    auth = request.authorization
+    token = request.headers['x-access-token']
+    if not auth or not auth.username or not auth.password:
+        return jsonify({'message': 'Please enter your username or password perfectly'})
+
+    user = User.query.filter_by(username=auth.username).first()
+
+    if not user:
+        return jsonify({'message': 'Please check your username'})
+    if check_password_hash(user.password, auth.password):
+        blacklist = Blacklist(token=token)
         db.session.delete(user)
+        db.session.add(blacklist)
         db.session.commit()
         return jsonify({'message': f"User {user.username} has been deleted"})
+
     return jsonify({'message': 'Please check your password'})
 
 
@@ -103,6 +111,9 @@ def delete_user():
 @app.route('/mw_finance', methods=['GET'])
 @token_required
 def home(current_user):
+    token = request.headers['x-access-token']
+    if Blacklist.query.filter_by(token=token).first():
+       return jsonify({'message' : 'Your account was deleted from our service', 'Next': 'Please make new one and visit again'})
     if not current_user.username:
         return jsonify({'message' : 'Something went wrong'})
     menu = Currency.query.all()
@@ -118,6 +129,10 @@ def home(current_user):
 @app.route('/mw_finance/<currency_id>', methods=['GET'])
 @token_required
 def search(current_user, currency_id):
+    token = request.headers['x-access-token']
+    if Blacklist.query.filter_by(token=token).first():
+       return jsonify({'message' : 'Your account was deleted from our service', 'Next': 'Please make new one and visit again'})
+
     if not current_user.username:
         return jsonify({'message' : 'Something went wrong'})
 
@@ -139,19 +154,3 @@ def search(current_user, currency_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
