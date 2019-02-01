@@ -84,25 +84,23 @@ def insert_currency_info(trimmed_list):
     com_bef = list[3].split(' ')
     last_idx1 = len(com_bef) - 1
     com_bef = com_bef[last_idx1]
-
     currency_info = finding_currency_info_by_currency_id(currency_id)
 
     if currency_info == None or today_or_not(finding_currency_info_by_currency_id(currency_id)) is False:
-        if len(trimmed_list[3:]) == 2:
-            info = Currency_info(list[0], list[1], list[2], com_bef, '0.00%', currency_id)
+        if len(list[3:]) == 2:
+            info = Currency_info(list[0], list[1], float(''.join(list[2].split(','))), float(com_bef), 0.00, currency_id)
             db.session.add(info)
             db.session.commit()
         else:
             plus_minus = list[4][len(list[4])-1]
             if plus_minus == '+':
-                plus_minus_str = '▲'
+                plus_minus_operator = 1
             else:
-                plus_minus_str = '▼'
-            print()
-            info = Currency_info(list[0], list[1], list[2], plus_minus_str + ' ' + com_bef, plus_minus + ' ' + '0' + list[len(list)-1].split('.')[1], currency_id)
+                plus_minus_operator = -1
+            info = Currency_info(list[0], list[1], float(''.join(list[2].split(','))), plus_minus_operator * float(com_bef),
+                                 plus_minus_operator * float(('0.'+ list[len(list)-1].split('.')[1])[0:-1]), currency_id)
             db.session.add(info)
             db.session.commit()
-
 
 
 
@@ -135,9 +133,9 @@ def dict_from_object(object):
     dict_info['currency_id'] = object.currency_id
     dict_info['통화명'] = object.통화명
     dict_info['심볼'] = object.심볼
-    dict_info['현재가'] = object.현재가
-    dict_info['전일대비'] = object.전일대비
-    dict_info['등락률'] = object.등락률
+    dict_info['현재가'] = float(object.현재가)
+    dict_info['전일대비'] = float(object.전일대비)
+    dict_info['등락률'] = float(object.등락률)
     dict_info['기준일'] = object.created_on.strftime("%Y.%m.%d")
     return dict_info
 
