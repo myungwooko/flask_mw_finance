@@ -24,6 +24,7 @@ class User(db.Model):
 class Blacklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(225))
+    created_on = db.Column(db.DateTime, server_default=db.func.now())
 
     def __init__(self, token):
         self.token = token
